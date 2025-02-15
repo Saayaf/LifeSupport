@@ -5,6 +5,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const donationAmountSpan = document.getElementById('donationAmount');
     let currentDonationAmount = 0;
 
+    // Configuration for UPI Payment
+    const UPI_CONFIG = {
+        ID: 'saifullakhadar@ybl',
+        MERCHANT_NAME: 'Life Support Trust'
+    };
+
+    // Close modal function
+    function closeModal() {
+        modal.style.display = 'none';
+        // Re-enable scrolling
+        document.body.style.overflow = 'auto';
+    }
+
     // Show payment modal with amount
     function showPaymentModal(amount) {
         if (!modal) {
@@ -24,21 +37,28 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('QR Code element not found in the document');
         }
         
+        // Show modal and prevent background scrolling
         modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
         console.log('Showing modal with amount:', amount);
     }
 
     // Close modal when clicking the X button
     if (closeModal) {
-        closeModal.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
+        closeModal.addEventListener('click', closeModal);
     }
 
-    // Close modal when clicking outside
+    // Close modal when clicking outside or pressing Escape
     window.addEventListener('click', (e) => {
         if (e.target === modal) {
-            modal.style.display = 'none';
+            closeModal();
+        }
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'block') {
+            closeModal();
         }
     });
 
@@ -98,27 +118,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle UPI Payment
     function handleUPIPayment(app) {
         const amount = currentDonationAmount;
-        const upiId = '9480981817@upi';
-        const merchantName = 'Life Support Trust';
+        const upiId = UPI_CONFIG.ID;
+        const merchantName = UPI_CONFIG.MERCHANT_NAME;
         const transactionNote = 'Donation to Life Support Trust';
         
-        let paymentUrl = '';
-        switch (app) {
-            case 'gpay':
-                paymentUrl = `tez://upi/pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&tn=${encodeURIComponent(transactionNote)}&am=${amount}&cu=INR`;
-                break;
-            case 'phonepe':
-                paymentUrl = `phonepe://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&tn=${encodeURIComponent(transactionNote)}&am=${amount}&cu=INR`;
-                break;
-            case 'paytm':
-                paymentUrl = `paytmmp://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&tn=${encodeURIComponent(transactionNote)}&am=${amount}&cu=INR`;
-                break;
-            case 'other':
-                alert(`Please use this UPI ID to make the payment:\n\nUPI ID: ${upiId}\nAmount: ₹${amount}`);
-                return;
-        }
+        // Construct UPI deep link
+        const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(merchantName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
         
-        window.location.href = paymentUrl;
+        console.log('Attempting UPI Payment:', {
+            app,
+            upiId,
+            amount,
+            merchantName
+        });
+        
+        // Attempt to open UPI app
+        try {
+            window.location.href = upiLink;
+        } catch (error) {
+            console.error('UPI Payment initiation failed:', error);
+            alert('Could not initiate UPI payment. Please check your UPI ID and try again.');
+        }
     }
 
     // Handle other payment methods
